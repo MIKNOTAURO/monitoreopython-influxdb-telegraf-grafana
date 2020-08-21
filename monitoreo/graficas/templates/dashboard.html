@@ -1,38 +1,36 @@
-{% load i18n widget_tweaks %}
-<html>
-  <head>
-  </head>
-  <body>
-{#    <div id="chart_div" style="width: 70%; height: 70%;"></div>#}
-    <form id="form-tiempo" method="post">{% csrf_token %}
-        <div>
-            <label>{{ form.tiempo.label }}</label>
-            {% render_field form.tiempo class="form-control" data-rule-required="true" %} {{ form.tiempo.errors }}
-        </div>
-        <div>
-            <label>{{ form.rango.label }}</label>
-            {% render_field form.rango class="form-control" data-rule-required="true" %} {{ form.tiempo.errors }}
-        </div>
-    </form>
-    <div style="width: 60%; height: 33%">
-     <h3 style="text-align: center">Memoria</h3>
+{% extends "base.html" %}
+{% block body %}
+        <div class="row">
+    <div class="col-6" style="height: 20%">
+        <h3 style="text-align: center">Memoria</h3>
         {% autoescape off %}
             {{ plot_div }}
         {% endautoescape %}
-    </div>
-    <br>
-    <br>
-    <div style="width: 60%; height: 33%">
-    <h3 style="text-align: center">CPU</h3>
-        {% autoescape off %}
-            {{ plot_div_cpu }}
-        {% endautoescape %}
-    </div>
-  </body>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-  <script src="http://ajax.aspnetcdn.com/ajax/jquery.validate/1.11.1/jquery.validate.min.js"></script>
 
-   <script type="text/javascript">
+    </div>
+    <div class="col-6" style="height: 20%">
+        <h3 style="text-align: center">Eth0 Bytes Recibidos</h3>
+
+        {% autoescape off %}
+            {{ plot_div_net }}
+        {% endautoescape %}
+
+    </div>
+
+    </div>
+    <br>
+    <br>
+    <div class="row">
+        <div  class="col-6" style="height: 20%">
+        <h3 style="text-align: center">CPU</h3>
+            {% autoescape off %}
+                {{ plot_div_cpu }}
+            {% endautoescape %}
+    </div>
+    </div>
+{% endblock %}
+{% block scripts %}
+    <script type="text/javascript">
         jQuery(document).ready(function() {
             $("#id_tiempo").change(function(){
                 $("#id_rango").val("")
@@ -46,4 +44,4 @@
 
         });
     </script>
-</html>
+{% endblock %}

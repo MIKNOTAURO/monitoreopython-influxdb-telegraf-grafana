@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block extra_head_files %}
+          <!-- Graficas Memoria -->
+      <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable({{ data_mem|safe }});
+
+        var options = {
+          title: 'Memoria',
+          hAxis: {title: 'Tiempo',  titleTextStyle: {color: '#333'}},
+          vAxis: {
+          viewWindowMode:'explicit',
+              viewWindow:{
+                min:{{ mem_min }},
+              }}
+        };
+
+        var chart = new google.visualization.AreaChart(document.getElementById('chart_div'));
+        chart.draw(data, options);
+      }
+    </script>
+      <!-- Graficas Net -->
+      <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable({{ data_net|safe }});
+
+        var options = {
+          title: 'Eth0 Bytes Recibidos',
+          hAxis: {title: 'Tiempo',  titleTextStyle: {color: '#333'}},
+          vAxis: {
+          viewWindowMode:'explicit',
+              viewWindow:{
+                min:{{ net_min }},
+              }}
+        };
+
+        var chart = new google.visualization.AreaChart(document.getElementById('chart_div_net'));
+        chart.draw(data, options);
+      }
+    </script>
+      <!-- Graficas CPU -->
+      <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable({{ data_cpu|safe }});
+
+        var options = {
+          title: 'CPU',
+          hAxis: {title: 'Tiempo',  titleTextStyle: {color: '#333'}},
+          vAxis: {
+          viewWindowMode:'explicit',
+              viewWindow:{
+                min:{{ cpu_min }},
+              }}
+        };
+
+        var chart = new google.visualization.AreaChart(document.getElementById('chart_div_cpu'));
+        chart.draw(data, options);
+      }
+    </script>
+{% endblock %}
+{% block body %}
+        <div class="row" style="height: 50%">
+    <div class="col-6"  >
+        <div id="chart_div" style="width: 100%; height: 100%;"></div>
+    </div>
+    <div class="col-6">
+        <div id="chart_div_net" style="width: 100%; height: 100%;"></div>
+    </div>
+
+    </div>
+    <br>
+    <br>
+    <div class="row" style="height: 50%">
+       <div class="col-6">
+            <div id="chart_div_cpu" style="width: 100%; height: 100%;"></div>
+        </div>
+    </div>
+{% endblock %}
+{%  block scripts %}
+       <script type="text/javascript">
+        jQuery(document).ready(function() {
+            $("#id_tiempo").change(function(){
+                $("#id_rango").val("")
+                $("#form-tiempo").submit()
+
+            });
+            $("#id_rango").change(function(){
+                $("#form-tiempo").submit()
+            });
+
+
+        });
+    </script>
+{% endblock %}

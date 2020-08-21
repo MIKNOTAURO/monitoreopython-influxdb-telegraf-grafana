@@ -16,10 +16,11 @@ Including another URLconf
 from django.conf.urls import url
 from django.contrib import admin
 
-from graficas.views import info_datos_server
+from graficas.views import info_datos_server, info_datos_server_google
 
 urlpatterns = [
     url(r'^admin/', admin.site.urls),
-    url(r'^graficas/', info_datos_server),
+    url(r'^$', info_datos_server, name='graficas_plotly'),
+    url(r'^graficas-google/', info_datos_server_google, name='graficas_google'),
 
 ]
