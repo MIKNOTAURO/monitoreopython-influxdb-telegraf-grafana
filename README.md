@@ -18,11 +18,11 @@ __1 Instalación y configuracion de telegraf__
   Ingresamos al siguiente repositorio de los datos descomprimidos y creamos un archivo telefraf.conf, con lo siguientes comandos, donde suaremos los plugins input cpu, mem y disk y plugins output influxdb
     
     cd telegraf-1.15.2/usr/bin
-    ./telegraf -sample-config -input-filter cpu:mem:disk -output-filter influxdb > telegraf.conf
+    ./telegraf -sample-config -input-filter cpu:mem:disk:net -output-filter influxdb > telegraf.conf
  
  Ya que tenemos el archivo telegraf.conf solo nos queda iniciar telegraf
  
-    ./telegraf
+    ./telegraf --config telegraf.conf
 
 __2 Instalación y configuración de Influx DB__
 2.1 Ubicate en el directorio donde deseas trabajar
