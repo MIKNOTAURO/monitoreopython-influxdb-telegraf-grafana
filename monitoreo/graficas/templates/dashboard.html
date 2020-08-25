@@ -9,7 +9,7 @@
 
     </div>
     <div class="col-6" style="height: 20%">
-        <h3 style="text-align: center">Eth0 Bytes Recibidos</h3>
+        <h3 style="text-align: center">Bytes/Sec</h3>
 
         {% autoescape off %}
             {{ plot_div_net }}
@@ -27,21 +27,11 @@
                 {{ plot_div_cpu }}
             {% endautoescape %}
     </div>
+    <div  class="col-6" style="height: 20%">
+        <h3 style="text-align: center">Bytes Download</h3>
+            {% autoescape off %}
+                {{  plot_div_net_used }}
+            {% endautoescape %}
     </div>
-{% endblock %}
-{% block scripts %}
-    <script type="text/javascript">
-        jQuery(document).ready(function() {
-            $("#id_tiempo").change(function(){
-                $("#id_rango").val("")
-                $("#form-tiempo").submit()
-
-            });
-            $("#id_rango").change(function(){
-                $("#form-tiempo").submit()
-            });
-
-
-        });
-    </script>
+    </div>
 {% endblock %}

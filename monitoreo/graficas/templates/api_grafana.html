@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block body %}
+{#    <iframe name="monitoringframe" id="monitoringframe" src="about:blank" src="http://3.131.109.207/1/2" sandbox="allow-forms allow-popups allow-same-origin allow-scripts" width=100% height=600 border="0" frameborder="0" >#}
+{#</iframe>#}
+{#    <iframe src="http://3.131.109.207/grafana/d/LeZo6YNGk/net?orgId=1&kiosk=tv&from=1598369775258&to=1598391375258&theme=light&panelId=2" width=100% height=100% border="0" frameborder="0"></iframe>#}
+    <iframe src="http://3.131.109.207/grafana/d/RPGFpEHMz/net-copy?orgId=1&kiosk=tv&from=1598383887108&to=1598394687108&theme=light" width=100% height=100% border="0" frameborder="0"></iframe>
+{% endblock %}
+{% block scripts %}
+    <script type="text/javascript">
+       jQuery(document).ready(function() {
+     $.ajax({
+         type: "GET",
+         url: "http://3.131.109.207/grafana/d/n9_uZfHGz/new-dashboard-copy?orgId=1&from=1598288839675&to=1598310439675",
+         Accept: "application/json",
+         xhrFields: {
+             withCredentials: true
+         },
+         headers: {
+             "Authorization": "Bearer eyJrIjoiZkZrZmE0MzltdWlrUFJmellORGdDc1hhMThPMVhUR2siLCJuIjoiYWRtaW4iLCJpZCI6MX0="
+         },
+         success: function(data){
+             console.log(data)
+             var iframeDoc = $("#monitoringframe").get(0).contentDocument;
+             iframeDoc.open();
+             iframeDoc.write(data);
+             iframeDoc.close();
+         },
+         error : function(err) {
+             console.log('Error!', err)
+         }
+     });
+      });
+    </script>
+{% endblock %}

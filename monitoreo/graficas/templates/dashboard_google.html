@@ -32,7 +32,7 @@
         var data = google.visualization.arrayToDataTable({{ data_net|safe }});
 
         var options = {
-          title: 'Eth0 Bytes Recibidos',
+          title: 'Bytes/Sec',
           hAxis: {title: 'Tiempo',  titleTextStyle: {color: '#333'}},
           vAxis: {
           viewWindowMode:'explicit',
@@ -67,6 +67,28 @@
         chart.draw(data, options);
       }
     </script>
+     <!-- Net Used -->
+      <script type="text/javascript">
+      google.charts.load('current', {'packages':['corechart']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = google.visualization.arrayToDataTable({{ data_net_used|safe }});
+
+        var options = {
+          title: 'Kb Download',
+          hAxis: {title: 'Tiempo',  titleTextStyle: {color: '#333'}},
+          vAxis: {
+          viewWindowMode:'explicit',
+              viewWindow:{
+                min:{{ net_min_used }},
+              }}
+        };
+
+        var chart = new google.visualization.AreaChart(document.getElementById('chart_div_net_used'));
+        chart.draw(data, options);
+      }
+    </script>
 {% endblock %}
 {% block body %}
         <div class="row" style="height: 50%">
@@ -83,6 +105,9 @@
     <div class="row" style="height: 50%">
        <div class="col-6">
             <div id="chart_div_cpu" style="width: 100%; height: 100%;"></div>
+        </div>
+        <div class="col-6">
+            <div id="chart_div_net_used" style="width: 100%; height: 100%;"></div>
         </div>
     </div>
 {% endblock %}
