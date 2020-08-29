@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 import json
 from influxdb import InfluxDBClient
+import requests
 
 from django.shortcuts import render
 from dateutil import parser
@@ -11,6 +12,9 @@ from plotly.graph_objs import Scatter
 from graficas.forms_graficas.graficas_forms import GraficasForm
 from pytz import timezone
 from plotly.graph_objs import Layout
+
+from graficas.models import Empresa, GrafanaData, GrafanaDashBoards
+
 
 def info_datos_server(request):
     form = GraficasForm()
@@ -289,6 +293,696 @@ def info_datos_server_google(request):
                                                      'net_min_used': net_min_used})
 
 
-def api_grafana(request, url, token):
+def api_grafana(request):
+    empresa = Empresa.objects.get(slug='fcetina')
+    grafana_data = GrafanaData.objects.filter(empresa=empresa)
+    if not grafana_data:
+        grafana_data = crear_organizacion_grafana(empresa)
+    else:
+        grafana_data = grafana_data[0]
+    grafana_dashboard = GrafanaDashBoards.objects.filter(empresa=empresa)
+    if not grafana_dashboard:
+        grafana_dashboard = crear_dashboard_grafana(empresa, grafana_data)
+    else:
+        grafana_dashboard = grafana_dashboard[0]
+    token = grafana_data.token_viewer
+    url = grafana_dashboard.link
 
-    return render(request, 'api_grafana.html', {'url': url, 'token': token })
+    url = 'http://3.131.109.207'+url+'?kiosk=tv&var-servidor=InfluxDB&theme=light'
+    print url
+    return render(request, 'api_grafana.html', {'url': url, 'token': token})
+
+
+def crear_organizacion_grafana(empresa):
+    data_create_organization = {"name": empresa.slug}
+    data_create_organization = json.dumps(data_create_organization)
+    headers_post_create_origanization = {
+        "Content-Type": "application/json",
+    }
+    errores = []
+    response_create_organization = requests.post(url="http://admin:fcetina235@3.131.109.207/grafana/api/orgs",
+                                                 data=data_create_organization,
+                                                 headers=headers_post_create_origanization)
+    if response_create_organization.status_code == 200:
+        response = json.loads(response_create_organization.text)
+        if response['orgId']:
+            id_organizacion = int(response['orgId'])
+            data_add_admin = {"loginOrEmail": "admin", "role": "Admin"}
+            data_add_admin = json.dumps(data_add_admin)
+            response_add_admin = requests.post(url='http://admin:fcetina235@3.131.109.207/grafana/api/orgs/'+ str(id_organizacion)+'/users',
+                                               data=data_add_admin, headers=headers_post_create_origanization)
+            if response_add_admin.status_code == 200 or response_add_admin.status_code == 409:
+                response = json.loads(response_add_admin.text)
+                response_switch = requests.post(url='http://admin:fcetina235@3.131.109.207/grafana/api/user/using/'+str(id_organizacion))
+                data_key_admin = {"name": "keyadmin"+empresa.slug, "role": "Admin"}
+                data_key_viewer = {"name": "keyviewer"+empresa.slug, "role": "Viewer"}
+                data_key_admin = json.dumps(data_key_admin)
+                data_key_viewer = json.dumps(data_key_viewer)
+                response_key_admin = requests.post(url='http://admin:fcetina235@3.131.109.207/grafana/api/auth/keys',
+                                                   data=data_key_admin, headers=headers_post_create_origanization)
+                response_key_viewer = requests.post(url='http://admin:fcetina235@3.131.109.207/grafana/api/auth/keys',
+                                                    data=data_key_viewer, headers=headers_post_create_origanization)
+                response_key_admin = json.loads(response_key_admin.text)
+                response_key_viewer = json.loads(response_key_viewer.text)
+                key_admin = response_key_admin['key']
+                key_viewer = response_key_viewer['key']
+
+                grafana_data = GrafanaData()
+                grafana_data.id_org = id_organizacion
+                grafana_data.token_admin = key_admin
+                grafana_data.token_viewer = key_viewer
+                grafana_data.empresa = empresa
+                grafana_data.save()
+
+                return grafana_data
+
+        else:
+            errores.appen(response['message'])
+            return None
+
+JSON_PANEL_BANDWIDTH = {
+  "aliasColors": {
+    "net.moving_average_1": "dark-red"
+  },
+  "bars": False,
+  "dashLength": 10,
+  "dashes": False,
+  "fieldConfig": {
+    "defaults": {
+      "custom": {}
+    },
+    "overrides": []
+  },
+  "fill": 1,
+  "fillGradient": 0,
+  "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 0
+  },
+  "hiddenSeries": False,
+  "id": 6,
+  "legend": {
+    "avg": False,
+    "current": False,
+    "max": False,
+    "min": False,
+    "show": True,
+    "total": False,
+    "values": False
+  },
+  "lines": True,
+  "linewidth": 1,
+  "NonePointMode": "null",
+  "percentage": False,
+  "pluginVersion": "",
+  "pointradius": 2,
+  "points": False,
+  "renderer": "flot",
+  "seriesOverrides": [],
+  "spaceLength": 10,
+  "stack": False,
+  "steppedLine": False,
+  "targets": [
+    {
+      "groupBy": [
+        {
+          "params": [
+            "15s"
+          ],
+          "type": "time"
+        },
+        {
+          "params": [
+            "null"
+          ],
+          "type": "fill"
+        }
+      ],
+      "measurement": "net",
+      "orderByTime": "ASC",
+      "policy": "default",
+      "query": "SELECT moving_average(non_negative_derivative(mean(\"bytes_recv\"), 1s), 30) *16 as \"download bytes/sec\", moving_average(non_negative_derivative(mean(\"bytes_sent\"), 1s), 30) *16 as \"upload bytes/sec\" FROM \"net\" WHERE $timeFilter GROUP BY time(15s) fill(null)",
+      "rawQuery": True,
+      "refId": "A",
+      "resultFormat": "time_series",
+      "select": [
+        [
+          {
+            "params": [
+              "bytes_recv"
+            ],
+            "type": "field"
+          },
+          {
+            "params": [],
+            "type": "mean"
+          },
+          {
+            "params": [
+              "1s"
+            ],
+            "type": "non_negative_derivative"
+          },
+          {
+            "params": [
+              "30"
+            ],
+            "type": "moving_average"
+          },
+          {
+            "params": [
+              "*16"
+            ],
+            "type": "math"
+          }
+        ],
+        [
+          {
+            "params": [
+              "bytes_sent"
+            ],
+            "type": "field"
+          },
+          {
+            "params": [],
+            "type": "mean"
+          },
+          {
+            "params": [
+              "1s"
+            ],
+            "type": "non_negative_derivative"
+          },
+          {
+            "params": [
+              "30"
+            ],
+            "type": "moving_average"
+          },
+          {
+            "params": [
+              "*16"
+            ],
+            "type": "math"
+          }
+        ]
+      ],
+      "tags": []
+    }
+  ],
+  "thresholds": [],
+  "timeFrom": None,
+  "timeRegions": [],
+  "timeShift": None,
+  "title": "Public Bandwidth",
+  "tooltip": {
+    "shared": True,
+    "sort": 0,
+    "value_type": "individual"
+  },
+  "type": "graph",
+  "xaxis": {
+    "buckets": None,
+    "mode": "time",
+    "name": None,
+    "show": True,
+    "values": []
+  },
+  "yaxes": [
+    {
+      "format": "short",
+      "label": None,
+      "logBase": 1,
+      "max": None,
+      "min": None,
+      "show": True
+    },
+    {
+      "format": "short",
+      "label": None,
+      "logBase": 1,
+      "max": None,
+      "min": None,
+      "show": True
+    }
+  ],
+  "yaxis": {
+    "align": False,
+    "alignLevel": None
+  },
+  "datasource": None
+}
+
+JSON_PANEL_RAM = {
+  "aliasColors": {},
+  "bars": False,
+  "dashLength": 10,
+  "dashes": False,
+  "fieldConfig": {
+    "InfluxDB": {
+      "custom": {}
+    },
+    "overrides": []
+  },
+  "fill": 1,
+  "fillGradient": 0,
+  "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 0,
+    "y": 0
+  },
+  "hiddenSeries": False,
+  "id": 4,
+  "legend": {
+    "avg": False,
+    "current": False,
+    "max": False,
+    "min": False,
+    "show": True,
+    "total": False,
+    "values": False
+  },
+  "lines": True,
+  "linewidth": 1,
+  "NonePointMode": "null",
+  "percentage": False,
+  "pluginVersion": "7.1.3",
+  "pointradius": 2,
+  "points": False,
+  "renderer": "flot",
+  "seriesOverrides": [],
+  "spaceLength": 10,
+  "stack": False,
+  "steppedLine": False,
+  "targets": [
+    {
+      "groupBy": [
+        {
+          "params": [
+            "1m"
+          ],
+          "type": "time"
+        },
+        {
+          "params": [
+            "null"
+          ],
+          "type": "fill"
+        }
+      ],
+      "measurement": "mem",
+      "orderByTime": "ASC",
+      "policy": "default",
+      "refId": "A",
+      "resultFormat": "time_series",
+      "select": [
+        [
+          {
+            "params": [
+              "used"
+            ],
+            "type": "field"
+          },
+          {
+            "params": [],
+            "type": "mean"
+          }
+        ]
+      ],
+      "tags": []
+    }
+  ],
+  "thresholds": [],
+  "timeFrom": None,
+  "timeRegions": [],
+  "timeShift": None,
+  "title": "Mem RAM",
+  "tooltip": {
+    "shared": True,
+    "sort": 0,
+    "value_type": "individual"
+  },
+  "type": "graph",
+  "xaxis": {
+    "buckets": None,
+    "mode": "time",
+    "name": None,
+    "show": True,
+    "values": []
+  },
+  "yaxes": [
+    {
+      "format": "short",
+      "label": None,
+      "logBase": 1,
+      "max": None,
+      "min": None,
+      "show": True
+    },
+    {
+      "format": "short",
+      "label": None,
+      "logBase": 1,
+      "max": None,
+      "min": None,
+      "show": True
+    }
+  ],
+  "yaxis": {
+    "align": False,
+    "alignLevel": None
+  },
+  "datasource": None
+}
+
+JSON_PANEL_CPU = {
+  "aliasColors": {},
+  "bars": False,
+  "dashLength": 10,
+  "dashes": False,
+  "fieldConfig": {
+    "defaults": {
+      "custom": {}
+    },
+    "overrides": []
+  },
+  "fill": 1,
+  "fillGradient": 0,
+  "gridPos": {
+    "h": 9,
+    "w": 12,
+    "x": 0,
+    "y": 8
+  },
+  "hiddenSeries": False,
+  "id": 2,
+  "legend": {
+    "avg": False,
+    "current": False,
+    "max": False,
+    "min": False,
+    "show": True,
+    "total": False,
+    "values": False
+  },
+  "lines": True,
+  "linewidth": 1,
+  "NonePointMode": "null",
+  "percentage": False,
+  "pluginVersion": "7.1.3",
+  "pointradius": 2,
+  "points": False,
+  "renderer": "flot",
+  "seriesOverrides": [],
+  "spaceLength": 10,
+  "stack": False,
+  "steppedLine": False,
+  "targets": [
+    {
+      "groupBy": [
+        {
+          "params": [
+            "1m"
+          ],
+          "type": "time"
+        },
+        {
+          "params": [
+            "null"
+          ],
+          "type": "fill"
+        }
+      ],
+      "measurement": "cpu",
+      "orderByTime": "ASC",
+      "policy": "default",
+      "refId": "A",
+      "resultFormat": "time_series",
+      "select": [
+        [
+          {
+            "params": [
+              "usage_system"
+            ],
+            "type": "field"
+          },
+          {
+            "params": [],
+            "type": "mean"
+          }
+        ]
+      ],
+      "tags": []
+    }
+  ],
+  "thresholds": [],
+  "timeFrom": None,
+  "timeRegions": [],
+  "timeShift": None,
+  "title": "CPU",
+  "tooltip": {
+    "shared": True,
+    "sort": 0,
+    "value_type": "individual"
+  },
+  "type": "graph",
+  "xaxis": {
+    "buckets": None,
+    "mode": "time",
+    "name": None,
+    "show": True,
+    "values": []
+  },
+  "yaxes": [
+    {
+      "format": "short",
+      "label": None,
+      "logBase": 1,
+      "max": None,
+      "min": None,
+      "show": True
+    },
+    {
+      "format": "short",
+      "label": None,
+      "logBase": 1,
+      "max": None,
+      "min": None,
+      "show": True
+    }
+  ],
+  "yaxis": {
+    "align": False,
+    "alignLevel": None
+  },
+  "datasource": None
+}
+
+JSON_PANEL_CONSUMO_NET = {
+  "aliasColors": {},
+  "bars": False,
+  "dashLength": 10,
+  "dashes": False,
+  "fieldConfig": {
+    "defaults": {
+      "custom": {}
+    },
+    "overrides": []
+  },
+  "fill": 1,
+  "fillGradient": 0,
+  "gridPos": {
+    "h": 8,
+    "w": 12,
+    "x": 12,
+    "y": 8
+  },
+  "hiddenSeries": False,
+  "id": 8,
+  "legend": {
+    "avg": False,
+    "current": False,
+    "max": False,
+    "min": False,
+    "show": True,
+    "total": False,
+    "values": False
+  },
+  "lines": True,
+  "linewidth": 1,
+  "NonePointMode": "null",
+  "percentage": False,
+  "pluginVersion": "7.1.3",
+  "pointradius": 2,
+  "points": False,
+  "renderer": "flot",
+  "seriesOverrides": [],
+  "spaceLength": 10,
+  "stack": False,
+  "steppedLine": False,
+  "targets": [
+    {
+      "groupBy": [
+        {
+          "params": [
+            "1m"
+          ],
+          "type": "time"
+        },
+        {
+          "params": [
+            "null"
+          ],
+          "type": "fill"
+        }
+      ],
+      "measurement": "net",
+      "orderByTime": "ASC",
+      "policy": "default",
+      "refId": "A",
+      "resultFormat": "time_series",
+      "select": [
+        [
+          {
+            "params": [
+              "bytes_recv"
+            ],
+            "type": "field"
+          },
+          {
+            "params": [],
+            "type": "mean"
+          },
+          {
+            "params": [],
+            "type": "non_negative_difference"
+          },
+          {
+            "params": [
+              "*2"
+            ],
+            "type": "math"
+          }
+        ]
+      ],
+      "tags": []
+    }
+  ],
+  "thresholds": [],
+  "timeFrom": None,
+  "timeRegions": [],
+  "timeShift": None,
+  "title": "Bytes Download",
+  "tooltip": {
+    "shared": True,
+    "sort": 0,
+    "value_type": "individual"
+  },
+  "type": "graph",
+  "xaxis": {
+    "buckets": None,
+    "mode": "time",
+    "name": None,
+    "show": True,
+    "values": []
+  },
+  "yaxes": [
+    {
+      "format": "short",
+      "label": None,
+      "logBase": 1,
+      "max": None,
+      "min": None,
+      "show": True
+    },
+    {
+      "format": "short",
+      "label": None,
+      "logBase": 1,
+      "max": None,
+      "min": None,
+      "show": True
+    }
+  ],
+  "yaxis": {
+    "align": False,
+    "alignLevel": None
+  },
+  "datasource": None
+}
+def crear_dashboard_grafana(empresa, grafana_data):
+    token_admin = grafana_data.token_admin
+    authorization = 'Bearer ' + token_admin
+    data_create_new_dashboard = {
+          "dashboard": {
+                "id": None,
+                "uid": None,
+                "title": "Server Status - "+ empresa.nombre,
+                "tags": ["templated"],
+                "timezone": "browser",
+                "schemaVersion": 16,
+                "version": 0,
+                "refresh": "25s"
+          },
+          "folderId": 0,
+          "overwrite": False
+    }
+    headers_grafana = {
+        "Authorization": authorization,
+        "Content-Type": "application/json",
+    }
+    data_create_new_dashboard = json.dumps(data_create_new_dashboard)
+
+    response_create_dashboard = requests.post(url='http://3.131.109.207/grafana/api/dashboards/db',
+                                              data=data_create_new_dashboard, headers=headers_grafana)
+    if response_create_dashboard.status_code == 200:
+        response = json.loads(response_create_dashboard.text)
+
+        id_dashboard = response['id']
+        uuid_dashboard = response['uid']
+        version_dashboard = int(response['version'])
+        url = response['url']
+        data_create_panels = {
+              "dashboard": {
+                    "id": id_dashboard,
+                    "panels": [JSON_PANEL_BANDWIDTH, JSON_PANEL_CPU, JSON_PANEL_CONSUMO_NET, JSON_PANEL_RAM],
+                    "uid": uuid_dashboard,
+                    "title": "Server Status - " + empresa.nombre,
+                    "version": version_dashboard,
+              }
+        }
+        data_create_panels = json.dumps(data_create_panels)
+        data_db = {
+            "name": "InfluxDB",
+            "type": "influxdb",
+            "typeLogoUrl": "public/app/plugins/datasource/influxdb/img/influxdb_logo.svg",
+            "access": "proxy",
+            "url": "http://localhost:8086",
+            "password": "",
+            "user": "",
+            "database": "telegraf_digitalocean",
+            "basicAuth": False,
+            "isDefault": True,
+            "jsonData": {},
+            "readOnly": False
+        }
+        data_db = json.dumps(data_db)
+        response_db = requests.post(url='http://3.131.109.207/grafana/grafana/api/datasources', data=data_db, headers=headers_grafana)
+        response_create_panels = requests.post(url='http://3.131.109.207/grafana/api/dashboards/db',
+                                               data=data_create_panels, headers=headers_grafana)
+        if response_create_panels.status_code == 200:
+            dashboard_grafana = GrafanaDashBoards()
+            dashboard_grafana.uuid_dashboard = uuid_dashboard
+            dashboard_grafana.id_dashboard = id_dashboard
+            dashboard_grafana.link = url
+            dashboard_grafana.title = "Server Status - "+ empresa.nombre
+            dashboard_grafana.version = version_dashboard + 1
+            dashboard_grafana.empresa = empresa
+            dashboard_grafana.save()
+
+            return dashboard_grafana
+    else:
+        return None

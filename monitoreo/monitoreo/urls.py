@@ -22,6 +22,6 @@ urlpatterns = [
     url(r'^admin/', admin.site.urls),
     url(r'^$', info_datos_server, name='graficas_plotly'),
     url(r'^graficas-google/', info_datos_server_google, name='graficas_google'),
-    url(r'^graficas-grafana/(.+)/(.+)/', api_grafana, name='graficas_grafana'),
+    url(r'^graficas-grafana/', api_grafana, name='graficas_grafana'),
 
 ]
