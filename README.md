@@ -1,11 +1,10 @@
-# stats Grafana
+# Stats Grafana
 Estadisticas de Servidor con Grafana, InfluxDB, Telegraft
 
 Se usará Ubuntu 18.04 para el ejemplo
 
 __1 Instalación y configuración de Influx DB__
 1.1 Ubicate en el directorio donde deseas trabajar
-    Abrir otra terminal
     
     cd ~/Documentos/stats_test
 
@@ -19,6 +18,8 @@ __1 Instalación y configuración de Influx DB__
     cd influxdb-1.8.1-1/usr/bin
     ./influxd
 __2 Instalación y configuracion de telegraf__
+    
+Abrir nueva terminal *
 
 2.1 Ubicate en el directorio donde deseas trabajar
     
@@ -60,4 +61,44 @@ __3 Intalación y configuracion de Grafana__
   user: admin
   password: admin
   
+    
+    
+# Instalación del proyecto Django
+__1 Instalar postgresql, ngixn, pip, curl__
+
+
+    sudo apt update
+    sudo apt install python-pip python-dev libpq-dev postgresql postgresql-contrib nginx curl   
+
+__2 Descargar el proyecto__
+
+    mkdir ~/Documentos/monitoreo_pyhton_grafana
+    cd ~/Documentos/monitoreo_pyhton_grafana
+    git clone git@github.com:fernandoWH/monitoreopython-influxdb-telegraf-grafana.git
+    
+__3 Crear entorno virtual__
+
+3.1 Descargar virtualenv
+
+    sudo -H pip install --upgrade pip
+    sudo -H pip install virtualenv
+
+3.2 Crear entorno virtual
+
+    virtualenv monitoreo
+    source monitoreo/bin/activate
+    
+ó
+
+    mkvirtualenv monitoreo
+    
+__4 Instalar requirements.txt__
+    
+    cd monitoreopython-influxdb-telegraf-grafana/
+    pip install -r requirements.txt
+
+__5 Correr el proyecto__
+
+    cd monitoreo
+    ./manage.py runserver
     
