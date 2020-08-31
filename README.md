@@ -61,8 +61,6 @@ __3 Intalación y configuracion de Grafana__
   user: admin
   password: admin
   
-    
-    
 # Instalación del proyecto Django
 __1 Instalar postgresql, ngixn, pip, curl__
 
@@ -102,3 +100,123 @@ __5 Correr el proyecto__
     cd monitoreo
     ./manage.py runserver
     
+    
+#Configuracion de Proxy Grafana-Ngixn
+
+__1 Crear archivo grafana.conf__
+
+    sudo nano /etc/nginx/sites-available/grafana.conf
+    
+1.1 Pegar lo siguiente dentro del archivo:
+
+    server {
+      listen      80;
+      # listen      [::]:80 ipv6only=on;
+      server_name localhost;
+      root /usr/share/nginx/www;
+      index index.html index.htm;
+    
+    
+      location /grafana/ {
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-Host $host;
+                proxy_set_header X-Forwarded-Server $host;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_hide_header 'x-frame-options';
+                proxy_set_header x-frame-options allowall;
+    
+                add_header Access-Control-Allow-Origin *;
+                add_header 'Access-Control-Allow-Credentials: true' always;
+                add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+                add_header 'Access-Control-Expose-Headers' 'Content-Type,Content-Length,Content-Range';
+                add_header 'Access-Control-Allow-Headers'
+                           'Accept,
+                            Authorization,
+                            Cache-Control,
+                            Content-Type,
+                            DNT,
+                            If-Modified-Since,
+                            Keep-Alive,
+                            Origin,
+                            User-Agent,
+                            X-Requested-With' always;
+    
+                if ($request_method = 'OPTIONS') {
+                  return 204;
+                }
+    
+                proxy_pass http://localhost:3000/;
+    
+            }
+    
+      location / {
+            proxy_pass http://localhost:8000/;
+            proxy_set_header Host $host;
+            proxy_set_header X-Real-IP $remote_addr;
+            proxy_set_header X-Forwarded-Host $host;
+            proxy_set_header X-Forwarded-Server $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_hide_header 'x-frame-options';
+            proxy_set_header x-frame-options allowall;
+    
+            add_header Access-Control-Allow-Origin *;
+            add_header 'Access-Control-Allow-Credentials: true' always;
+            add_header 'Access-Control-Allow-Methods' 'GET, POST, OPTIONS' always;
+            add_header 'Access-Control-Expose-Headers' 'Content-Type,Content-Length,Content-Range';
+            add_header 'Access-Control-Allow-Headers'
+                       'Accept,
+                        Authorization,
+                        Cache-Control,
+                        Content-Type,
+                        DNT,
+                        If-Modified-Since,
+                        Keep-Alive,
+                        Origin,
+                        User-Agent,
+                        X-Requested-With' always;
+    
+            if ($request_method = 'OPTIONS') {
+              return 204;
+            }
+        }
+    }
+
+1.2 Vincular a sites-enable
+
+    sudo ln -s /etc/nginx/sites-available/grafana.conf /etc/nginx/sites-enabled
+
+1.3 Verificar la sintaxis de grafana.conf
+    
+    sudo nginx -t
+    
+1.4 Recargar nginx
+    
+    sudo service nginx reload
+    
+1.5 Configurar grafana.ini o defaults.ini
+
+Ingrese a la carpeta donde esta ubicado grafana y abre el archivo
+
+    cd ~/Documentos/stats_test/grafana-7.1.3/conf
+    nano defaults.ini
+    
+Cambiaremos lo siguiente:
+
+    # root_url = %(protocol)s://%(domain)s:%(http_port)s/
+    root_url = %(protocol)s://%(domain)s:%(http_port)s/grafana
+    
+    # enable anonymous access
+    # enabled = false
+    enabled = true
+    
+    [dataproxy]
+
+    # This enables data proxy logging, default is false
+    # logging = false
+    logging =true
+    
+1.6 Reiniciamos el servicio grafana
+
+    cd ~/Documentos/stats_test/grafana-7.1.3/bin
+    ./grafana-server
