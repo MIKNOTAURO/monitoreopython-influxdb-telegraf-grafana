@@ -33,7 +33,7 @@ def info_datos_server(request):
             else:
                 rango = '1m'
             form = GraficasForm(initial={'tiempo': tiempo, 'rango':rango})
-        client = InfluxDBClient('3.131.109.207:3000', 8086, 'root', 'root', 'telegraf_digitalocean')
+        client = InfluxDBClient('3.131.109.207', 8086, 'root', 'root', 'telegraf_digitalocean')
         result = client.query('SELECT mean("used") FROM "mem" WHERE time >= now() - '+ tiempo +' GROUP BY time('+ rango +') fill(null)')
         result_cpu = client.query(
             'SELECT mean("usage_system") FROM "cpu" WHERE time >= now() - '+ tiempo +' GROUP BY time('+ rango +') fill(null)')
