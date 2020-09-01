@@ -112,7 +112,7 @@ __1 Crear archivo grafana.conf__
     server {
       listen      80;
       # listen      [::]:80 ipv6only=on;
-      server_name localhost;
+      server_name monitoreo.com;
       root /usr/share/nginx/www;
       index index.html index.htm;
     
@@ -146,12 +146,12 @@ __1 Crear archivo grafana.conf__
                   return 204;
                 }
     
-                proxy_pass http://localhost:3000/;
+                proxy_pass http://monitoreo.com:3000/;
     
             }
     
       location / {
-            proxy_pass http://localhost:8000/;
+            proxy_pass http://monitoreo.com:8000/;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
             proxy_set_header X-Forwarded-Host $host;
@@ -202,9 +202,13 @@ Ingrese a la carpeta donde esta ubicado grafana y abre el archivo
     nano defaults.ini
     
 Cambiaremos lo siguiente:
-
+    
+    domain= monitoreo.com
+    
     # root_url = %(protocol)s://%(domain)s:%(http_port)s/
-    root_url = %(protocol)s://%(domain)s:%(http_port)s/grafana
+    root_url = http://monitoreo.com:3000/grafana
+    
+    serve_from_sub_path = true
     
     # enable anonymous access
     # enabled = false

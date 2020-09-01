@@ -32,25 +32,26 @@ def info_datos_server(request):
                 rango = '1d'
             else:
                 rango = '1m'
-            form = GraficasForm(initial={'tiempo': tiempo, 'rango':rango})
-        client = InfluxDBClient('3.131.109.207', 8086, 'root', 'root', 'telegraf_digitalocean')
+            form = GraficasForm(initial={'tiempo': tiempo, 'rango': rango})
+        client = InfluxDBClient('monitoreo.com', 8086, 'root', 'root', 'telegraf')
         result = client.query('SELECT mean("used") FROM "mem" WHERE time >= now() - '+ tiempo +' GROUP BY time('+ rango +') fill(null)')
         result_cpu = client.query(
             'SELECT mean("usage_system") FROM "cpu" WHERE time >= now() - '+ tiempo +' GROUP BY time('+ rango +') fill(null)')
 
         result_net_speed = client.query(
-            'SELECT moving_average(derivative(mean(bytes_recv), 1s), 30) *16  as "download bytes/sec",  moving_average(derivative(mean(bytes_sent), 1s), 30) *16 as '
+            'SELECT non_negative_derivative(mean("bytes_recv"), 1s) *8 as "download bytes/sec",  '
+            'non_negative_derivative(mean("bytes_sent"), 1s) *8 as '
             '"upload bytes/sec" FROM net WHERE time > now() - '+ tiempo +' GROUP BY time(15s)')
         result_net_used = client.query('SELECT non_negative_difference(mean("bytes_recv")) *2 FROM "net" '
                                        'WHERE time >= now() -' + tiempo + ' GROUP BY time(15s) fill(null)')
     else:
-        client = InfluxDBClient('3.131.109.207', 8086, 'root', 'root', 'telegraf_digitalocean')
+        client = InfluxDBClient('monitoreo.com', 8086, 'root', 'root', 'telegraf')
         result = client.query(
             'SELECT mean("used") FROM "mem" WHERE time >= now() - 15m GROUP BY time(1m) fill(null)')
         result_cpu = client.query(
             'SELECT mean("usage_system") FROM "cpu" WHERE time >= now() - 15m GROUP BY time(1m) fill(null)')
         result_net_speed = client.query(
-            'SELECT moving_average(derivative(mean(bytes_recv), 1s), 30) *16 as "download bytes/sec", moving_average(derivative(mean(bytes_sent), 1s), 30) *16 as '
+            'SELECT non_negative_derivative(mean("bytes_recv"), 1s) *8 as "download bytes/sec", non_negative_derivative(mean("bytes_sent"), 1s) *8 as '
             '"upload bytes/sec" FROM net WHERE time > now() - 15m GROUP BY time(15s)')
         result_net_used = client.query('SELECT non_negative_difference(mean("bytes_recv")) *2 FROM "net" '
                                        'WHERE time >= now() - 15m GROUP BY time(15s) fill(null)')
@@ -168,29 +169,29 @@ def info_datos_server_google(request):
             else:
                 rango = '1m'
             form = GraficasForm(initial={'tiempo': tiempo, 'rango': rango})
-        client = InfluxDBClient('3.131.109.207', 8086, 'root', 'root', 'telegraf_digitalocean')
+        client = InfluxDBClient('monitoreo.com', 8086, 'root', 'root', 'telegraf')
         result = client.query(
             'SELECT mean("used") FROM "mem" WHERE time >= now() - ' + tiempo + ' GROUP BY time(' + rango + ') fill(null)')
         result_cpu = client.query(
             'SELECT mean("usage_system") FROM "cpu" WHERE time >= now() - ' + tiempo + ' GROUP BY time(' + rango + ') fill(null)')
 
         result_net_speed = client.query(
-            'SELECT moving_average(derivative(mean(bytes_recv), 1s), 30) *16  as "download bytes/sec",  moving_average(derivative(mean(bytes_sent), 1s), 30) *16 as '
-            '"upload bytes/sec" FROM net WHERE time > now() - '+ tiempo +' GROUP BY time(15s)')
+            'SELECT non_negative_derivative(mean("bytes_recv"), 1s) *8 as "download bytes/sec",  '
+            'non_negative_derivative(mean("bytes_sent"), 1s) *8 as '
+            '"upload bytes/sec" FROM net WHERE time > now() - ' + tiempo + ' GROUP BY time(15s)')
 
         result_net_used = client.query('SELECT non_negative_difference(mean("bytes_recv")) *2 FROM "net" '
-                                       'WHERE time >= now() -'+ tiempo +' GROUP BY time(15s) fill(null)')
+                                       'WHERE time >= now() -' + tiempo + ' GROUP BY time(15s) fill(null)')
 
     else:
-        client = InfluxDBClient('3.131.109.207', 8086, 'root', 'root', 'telegraf_digitalocean')
+        client = InfluxDBClient('monitoreo.com', 8086, 'root', 'root', 'telegraf')
         result = client.query(
             'SELECT mean("used") FROM "mem" WHERE time >= now() - 15m GROUP BY time(1m) fill(null)')
         result_cpu = client.query(
             'SELECT mean("usage_system") FROM "cpu" WHERE time >= now() - 15m GROUP BY time(1m) fill(null)')
         result_net_speed = client.query(
-            'SELECT moving_average(derivative(mean(bytes_recv), 1s), 30) *16 as "download bytes/sec", '
-            'moving_average(derivative(mean(bytes_sent), 1s), 30) *16 as "upload bytes/sec" FROM net '
-            'WHERE time > now() - 15m GROUP BY time(15s)')
+            'SELECT non_negative_derivative(mean("bytes_recv"), 1s) *8 as "download bytes/sec", non_negative_derivative(mean("bytes_sent"), 1s) *8 as '
+            '"upload bytes/sec" FROM net WHERE time > now() - 15m GROUP BY time(15s)')
         result_net_used = client.query('SELECT non_negative_difference(mean("bytes_recv")) *2 FROM "net" '
                                        'WHERE time >= now() - 15m GROUP BY time(15s) fill(null)')
 
@@ -308,7 +309,7 @@ def api_grafana(request):
     token = grafana_data.token_viewer
     url = grafana_dashboard.link
 
-    url = 'http://3.131.109.207'+url+'?kiosk=tv&var-servidor=InfluxDB&theme=light'
+    url = 'http://monitoreo.com'+url+'?kiosk=tv&var-servidor=InfluxDB&theme=light'
     print url
     return render(request, 'api_grafana.html', {'url': url, 'token': token})
 
@@ -320,7 +321,7 @@ def crear_organizacion_grafana(empresa):
         "Content-Type": "application/json",
     }
     errores = []
-    response_create_organization = requests.post(url="http://admin:fcetina235@3.131.109.207/grafana/api/orgs",
+    response_create_organization = requests.post(url="http://admin:fcetina235@monitoreo.com/grafana/api/orgs",
                                                  data=data_create_organization,
                                                  headers=headers_post_create_origanization)
     if response_create_organization.status_code == 200:
@@ -329,18 +330,18 @@ def crear_organizacion_grafana(empresa):
             id_organizacion = int(response['orgId'])
             data_add_admin = {"loginOrEmail": "admin", "role": "Admin"}
             data_add_admin = json.dumps(data_add_admin)
-            response_add_admin = requests.post(url='http://admin:fcetina235@3.131.109.207/grafana/api/orgs/'+ str(id_organizacion)+'/users',
+            response_add_admin = requests.post(url='http://admin:fcetina235@monitoreo.com/grafana/api/orgs/'+ str(id_organizacion)+'/users',
                                                data=data_add_admin, headers=headers_post_create_origanization)
             if response_add_admin.status_code == 200 or response_add_admin.status_code == 409:
                 response = json.loads(response_add_admin.text)
-                response_switch = requests.post(url='http://admin:fcetina235@3.131.109.207/grafana/api/user/using/'+str(id_organizacion))
+                response_switch = requests.post(url='http://admin:fcetina235@monitoreo.com/grafana/api/user/using/'+str(id_organizacion))
                 data_key_admin = {"name": "keyadmin"+empresa.slug, "role": "Admin"}
                 data_key_viewer = {"name": "keyviewer"+empresa.slug, "role": "Viewer"}
                 data_key_admin = json.dumps(data_key_admin)
                 data_key_viewer = json.dumps(data_key_viewer)
-                response_key_admin = requests.post(url='http://admin:fcetina235@3.131.109.207/grafana/api/auth/keys',
+                response_key_admin = requests.post(url='http://admin:fcetina235@monitoreo.com/grafana/api/auth/keys',
                                                    data=data_key_admin, headers=headers_post_create_origanization)
-                response_key_viewer = requests.post(url='http://admin:fcetina235@3.131.109.207/grafana/api/auth/keys',
+                response_key_viewer = requests.post(url='http://admin:fcetina235@monitoreo.com/grafana/api/auth/keys',
                                                     data=data_key_viewer, headers=headers_post_create_origanization)
                 response_key_admin = json.loads(response_key_admin.text)
                 response_key_viewer = json.loads(response_key_viewer.text)
@@ -936,7 +937,7 @@ def crear_dashboard_grafana(empresa, grafana_data):
     }
     data_create_new_dashboard = json.dumps(data_create_new_dashboard)
 
-    response_create_dashboard = requests.post(url='http://3.131.109.207/grafana/api/dashboards/db',
+    response_create_dashboard = requests.post(url='http://monitoreo.com/grafana/api/dashboards/db',
                                               data=data_create_new_dashboard, headers=headers_grafana)
     if response_create_dashboard.status_code == 200:
         response = json.loads(response_create_dashboard.text)
@@ -960,18 +961,18 @@ def crear_dashboard_grafana(empresa, grafana_data):
             "type": "influxdb",
             "typeLogoUrl": "public/app/plugins/datasource/influxdb/img/influxdb_logo.svg",
             "access": "proxy",
-            "url": "http://localhost:8086",
+            "url": "http://monitoreo.com:8086",
             "password": "",
             "user": "",
-            "database": "telegraf_digitalocean",
+            "database": "telegraf",
             "basicAuth": False,
             "isDefault": True,
             "jsonData": {},
             "readOnly": False
         }
         data_db = json.dumps(data_db)
-        response_db = requests.post(url='http://3.131.109.207/grafana/grafana/api/datasources', data=data_db, headers=headers_grafana)
-        response_create_panels = requests.post(url='http://3.131.109.207/grafana/api/dashboards/db',
+        response_db = requests.post(url='http://monitoreo.com/grafana/api/datasources', data=data_db, headers=headers_grafana)
+        response_create_panels = requests.post(url='http://monitoreo.com/grafana/api/dashboards/db',
                                                data=data_create_panels, headers=headers_grafana)
         if response_create_panels.status_code == 200:
             dashboard_grafana = GrafanaDashBoards()
